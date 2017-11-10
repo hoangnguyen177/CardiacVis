@@ -1,0 +1,24 @@
+{
+  "name": "cardiacvis",
+  "version": "1.0.0",
+  "description": "visulise cardiac data",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Hoang Nguyen",
+  "license": "ISC",
+  "dependencies": {
+    "vtk.js": "^5.4.1"
+  },
+  "devDependencies": {
+    "kw-web-suite": "^4.0.1"
+  },
+  "scripts": {
+    "build": "webpack",
+    "build:release": "webpack -p",
+    "start": "webpack-dev-server --content-base ./dist",
+    "commit": "git cz",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
+  }
+}
