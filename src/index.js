@@ -51,9 +51,9 @@ reader.setUrl('/data/heart.vtk').then(() => {
   render();
 });
 */
-const reader = vtkPolyDataReader.newInstance();
+const reader = vtkXMLPolyDataReader.newInstance();
 //reader.ReadAllScalarsOn();
-reader.setUrl('/data/heart.vtk').then(() => {
+reader.setUrl('/data/heart.vtp').then(() => {
   reader.update();
   console.log("reader....");
   console.log(reader);

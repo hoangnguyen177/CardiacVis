@@ -20064,27 +20064,83 @@ reader.setUrl('/data/heart.vtk').then(() => {
   render();
 });
 */
-const reader = __WEBPACK_IMPORTED_MODULE_6_vtk_js_Sources_IO_XML_XMLPolyDataReader___default.a.newInstance();
+const reader = __WEBPACK_IMPORTED_MODULE_4_vtk_js_Sources_IO_Legacy_PolyDataReader___default.a.newInstance();
 //reader.ReadAllScalarsOn();
-reader.setUrl('/data/heart.vtp').then(() => {
+reader.setUrl('/data/heart.vtk').then(() => {
+  reader.update();
   console.log("reader....");
   console.log(reader);
 
-  const polydata = reader.getOutputData(0);
+  
+  const polydata = reader.getOutputData();
   //const scalardata = reader.getOutputData(1);
   
   console.log("polydata....");
   console.log(polydata);
-  console.log(polydata.getPolys().length);
+  console.log(polydata.get());
   
-  console.log("sclarrrr----");
-  console.log(polydata.getPointData(0).length);
+  console.log("--points....");  
+  console.log(polydata.get().points.get());//
 
+  console.log("--polys....");
+  console.log(polydata.get().polys.get());//
+  
+  console.log("--pointData....");
+  console.log(polydata.get().pointData.get());
+
+
+  // console.log("--verts....");
+  // console.log(polydata.get().verts.get());
+
+  
+  // console.log("--strips....");
+  // console.log(polydata.get().strips.get());
+
+
+  // console.log("--lines....");
+  // console.log(polydata.get().lines.get());
+
+
+  // console.log("--cellData....");
+  // console.log(polydata.get().cellData.get());
+		
+  // console.log("--fieldData....");
+  // console.log(polydata.get().fieldData.get());
+
+  /*
+  //console.log(polydata.getPolys().length);
+  console.log("cells:::" + polydata.getNumberOfCells());
+  console.log("lines:::" +polydata.getNumberOflines());
+  console.log("polys:::" +polydata.getNumberOfpolys());
+  console.log("strips:::" +polydata.getNumberOfstrips());
+  console.log("verts:::" +polydata.getNumberOfverts());
+  
+  //DATASET POLYDATA
+  console.log("points");
+  console.log(polydata.getPoints());
+  console.log(polydata.getPoints().getData());
+
+  //POLYGONS
+  console.log("polys");
+  console.log(polydata.getPolys());
+  console.log(polydata.getPolys().getData());
+
+  //NOTHING
+  //console.log("cell data");
+  //console.log(polydata.getCellData());
+  //console.log(polydata.getCellData().get());
+
+  console.log("sclarrrr----");
+  console.log(polydata.getPointData().get());
+  console.log(polydata.getPointData().getArrays());
+  console.log(polydata.getPointData().getArrays()[0].getData().length);
+  
 
   //console.log("sclarrrr");
   //console.log(scalardata);
   //polydata.GetPointData().SetScalars(scalardata);
-  
+  */
+
   const mapper = __WEBPACK_IMPORTED_MODULE_3_vtk_js_Sources_Rendering_Core_Mapper___default.a.newInstance();
   const actor = __WEBPACK_IMPORTED_MODULE_1_vtk_js_Sources_Rendering_Core_Actor___default.a.newInstance();
   actor.setMapper(mapper);
