@@ -1,5 +1,12 @@
 <table>
   <tr>
+    <td>Select Dataset: </td>
+    <td>
+      <select class='datasets' style="width: 100%"></select>
+    </td>
+  </tr>
+  <tr>
+    <td>Display Options: </td>
     <td>
       <select class='representations' style="width: 100%">
         <option value='0'>Points</option>
@@ -7,10 +14,20 @@
         <option value='2' selected>Surface</option>
       </select>
     </td>
+    <td>Visible Edges</td>
+    <td>
+      <input class='visibility' type="checkbox" /> <!-- To Edit-->
+    </td>
   </tr>
-  <tr>
+ <!-- <tr>
     <td>
       <input class='resolution' type='range' min='4' max='80' value='6' />
+    </td>
+  </tr> -->
+  <tr>
+    <td>Voltage Solutions: </td>
+    <td>
+      <input class='vSolns' type="range" min="0" max="30" step="1" value="0" />
     </td>
   </tr>
 </table>
