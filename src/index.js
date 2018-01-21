@@ -13,6 +13,7 @@ import controlPanel               from './controller.html';
 
 // const fileName = 'heart.vtk'; // 'uh60.vtk'; // 'luggaBody.vtk';
 const __BASE_PATH__ = 'localhost:8080';
+
 // ----------------------------------------------------------------------------
 // Standard rendering code setup
 // ----------------------------------------------------------------------------
@@ -31,11 +32,46 @@ const displayEdgeSelector = document.querySelector('.visibility');
 var initialModelResult = '/data/DS_1/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp'; 
 var baseModelResult = '/data/DS_1/Vsoln_testrun_';
 var actor = '';
-const reader = vtkXMLPolyDataReader.newInstance(); //reader.ReadAllScalarsOn();
+const reader = vtkXMLPolyDataReader.newInstance();
 var fileLocation = initialModelResult;
 
+
+// -----------------------------------------------------------
+// Looking at grabbing the information from the NeCTAR container site
+// instead of locally, but haven't figured it out for the moment;
+// focusing on running Continuity from within docker <22/1/2018>
+// ----------------------------------------------------------- 
+// 
+// const fileLocTest = 'DS_1/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp';
+// const fileTest = 'https://swift.rc.nectar.org.au:8888/v1/AUTH_53ca8bcbf7fd4140b05648b13b7b7898/CardiacContainerTest/';
+// var initialModelResult = fileTest + fileLocTest;
+// var fileLocation =  initialModelResult;
+
+// fetch(fileLocation, {headers: {'Access-Control-Allow-Origin': '*'}}).then(function(response) { //{mode: 'no-cors'}
+//   console.log("RESPONSE");
+//   // response.blob().then(function(m) {
+//   //   var x = URL.createObjectURL(m);
+//   //   console.log(x);
+//   // });
+// });
+
+// var express = require('express');
+// var app = express();
+// app.use(function(req, res, next) {
+//   res.header("Access-Control-Allow-Origin", "*");
+//   // res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+//   next();
+// });
+// -----------------------------------------------------------
+
+
+// -----------------------------------------------------------
+// Initially display the mesh (pre cardiac simulation) and setup
+// the different heart models that can be loaded
+// -----------------------------------------------------------  
 setupDummyFiles();
 initialiseDisplayedMesh();
+
 
 function initialiseDisplayedMesh() {
   reader.setUrl(fileLocation).then(() => {
@@ -98,7 +134,7 @@ representationSelector.addEventListener('change', (e) => {
 
 // Select different datasets to load from a drop down
 datasetSelector.addEventListener('change', (e) => {
-  const fileNumber = 'Loading dataset from: ' + e.target.value;
+  const fileNumber = 'Loading Dataset #' + e.target.value;
   console.log(fileNumber);
 
   fileLocation = '/data/DS_' + e.target.value + '/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp';
@@ -113,6 +149,7 @@ datasetSelector.addEventListener('change', (e) => {
 // Update the displayed scalar values
 voltageSolutionSlider.addEventListener('input', (e) => {
   const newFileLocation = baseModelResult + e.target.value + '.vtp';
+
   
   // Simulation model file results
   updateScalarData(newFileLocation);
@@ -120,7 +157,7 @@ voltageSolutionSlider.addEventListener('input', (e) => {
 
 /**
  * Currently sets up a dummy example of a drop down list of files.
- * TODO: load these as they are established
+ * TODO: load these as they are "established/created/found"
  */
 function setupDummyFiles() {
   var datasetsElement = document.getElementsByClassName('datasets')[0];
