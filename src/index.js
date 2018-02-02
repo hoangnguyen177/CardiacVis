@@ -3,14 +3,13 @@ import vtkActor                   from 'vtk.js/Sources/Rendering/Core/Actor';
 import vtkFullScreenRenderWindow  from 'vtk.js/Sources/Rendering/Misc/FullScreenRenderWindow';
 import vtkMapper                  from 'vtk.js/Sources/Rendering/Core/Mapper';
 import vtkPolyDataReader          from 'vtk.js/Sources/IO/Legacy/PolyDataReader';
-import XMLReader          		  from 'vtk.js/Sources/IO/XML/XMLReader';
+import XMLReader          		    from 'vtk.js/Sources/IO/XML/XMLReader';
 import vtkXMLPolyDataReader       from 'vtk.js/Sources/IO/XML/XMLPolyDataReader';
 import vtkColorTransferFunction   from 'vtk.js/Sources/Rendering/Core/ColorTransferFunction';
 import vtkColorMaps               from 'vtk.js/Sources/Rendering/Core/ColorTransferFunction/ColorMaps';
 
 // For styling slider/dropdown
 import controlPanel               from './controller.html'; 
-
 // const fileName = 'heart.vtk'; // 'uh60.vtk'; // 'luggaBody.vtk';
 const __BASE_PATH__ = 'localhost:8080';
 
@@ -29,52 +28,38 @@ const voltageSolutionSlider = document.querySelector('.vSolns');
 const datasetSelector = document.querySelector('.datasets');
 const displayEdgeSelector = document.querySelector('.visibility');
 
-var initialModelResult = '/data/DS_1/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp'; 
-var baseModelResult = '/data/DS_1/Vsoln_testrun_';
+/* FILES THAT ARE LOCATED LOCALLY */
+// var initialModelResult = '/data/DS_1/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp'; 
+// var baseModelResult = '/data/DS_1/Vsoln_testrun_';
+// var fileLocation = initialModelResult;
+
 var actor = '';
 const reader = vtkXMLPolyDataReader.newInstance();
-var fileLocation = initialModelResult;
-
 
 // -----------------------------------------------------------
-// Looking at grabbing the information from the NeCTAR container site
-// instead of locally, but haven't figured it out for the moment;
-// focusing on running Continuity from within docker <22/1/2018>
+// Files located on Nectar, current hack found <2/2/18>:
+// Run Safari with security disabled:
+// <Toolbar> Develop -> Disable Cross-Origin Restrictions
 // ----------------------------------------------------------- 
-// 
-// const fileLocTest = 'DS_1/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp';
-// const fileTest = 'https://swift.rc.nectar.org.au:8888/v1/AUTH_53ca8bcbf7fd4140b05648b13b7b7898/CardiacContainerTest/';
-// var initialModelResult = fileTest + fileLocTest;
-// var fileLocation =  initialModelResult;
 
-// fetch(fileLocation, {headers: {'Access-Control-Allow-Origin': '*'}}).then(function(response) { //{mode: 'no-cors'}
-//   console.log("RESPONSE");
-//   // response.blob().then(function(m) {
-//   //   var x = URL.createObjectURL(m);
-//   //   console.log(x);
-//   // });
-// });
-
-// var express = require('express');
-// var app = express();
-// app.use(function(req, res, next) {
-//   res.header("Access-Control-Allow-Origin", "*");
-//   // res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-//   next();
-// });
-// -----------------------------------------------------------
-
+var baseModelResult = 'DS_1/Vsoln_testrun_';
+var middleObjStoreURL = baseModelResult + voltageSolutionSlider.value + '.vtp';
+const baseObjStoreURL = 'https://swift.rc.nectar.org.au:8888/v1/AUTH_53ca8bcbf7fd4140b05648b13b7b7898/CardiacContainerTest/';
+const initialModelResult = baseObjStoreURL + middleObjStoreURL;
+var fileLocation =  initialModelResult;
 
 // -----------------------------------------------------------
 // Initially display the mesh (pre cardiac simulation) and setup
 // the different heart models that can be loaded
 // -----------------------------------------------------------  
 setupDummyFiles();
-initialiseDisplayedMesh();
+initialiseDisplayedMesh(fileLocation);
 
-
-function initialiseDisplayedMesh() {
-  reader.setUrl(fileLocation).then(() => {
+/**
+ * Assign a colour map and render everything properly.
+ */
+function initialiseDisplayedMesh(file) {
+  reader.setUrl(file).then(() => {
     reader.update();
     const polydata = reader.getOutputData();
     
@@ -137,8 +122,14 @@ datasetSelector.addEventListener('change', (e) => {
   const fileNumber = 'Loading Dataset #' + e.target.value;
   console.log(fileNumber);
 
-  fileLocation = '/data/DS_' + e.target.value + '/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp';
-  baseModelResult = '/data/DS_' + e.target.value + '/Vsoln_testrun_';
+  /* Locally Located Files */
+  // fileLocation = '/data/DS_' + e.target.value + '/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp';
+  // baseModelResult = '/data/DS_' + e.target.value + '/Vsoln_testrun_';
+
+  /* Files Located On Object Store */
+  baseModelResult = 'DS_' + e.target.value + '/Vsoln_testrun_';
+  middleObjStoreURL = baseModelResult + voltageSolutionSlider.value + '.vtp';
+  fileLocation =  baseObjStoreURL + middleObjStoreURL;
   
   actor.delete();
   initialiseDisplayedMesh(fileLocation);
@@ -148,11 +139,11 @@ datasetSelector.addEventListener('change', (e) => {
 
 // Update the displayed scalar values
 voltageSolutionSlider.addEventListener('input', (e) => {
-  const newFileLocation = baseModelResult + e.target.value + '.vtp';
-
+  fileLocation = baseObjStoreURL + baseModelResult + e.target.value + '.vtp'; // new file location
+  console.log("Scalar Value from: " +  fileLocation);
   
   // Simulation model file results
-  updateScalarData(newFileLocation);
+  updateScalarData(fileLocation); /* Added baseObjStoreURL because loaded from website*/
 });
 
 /**
