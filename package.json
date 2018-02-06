@@ -13,8 +13,9 @@
   "author": "Hoang Nguyen",
   "license": "ISC",
   "dependencies": {
+    "babel-preset-env": "^1.6.1",
     "cors": "^2.8.4",
-    "vtk.js": "^5.7.6"
+    "vtk.js": "^5.15.20"
   },
   "devDependencies": {
     "kw-web-suite": "^4.0.1"
