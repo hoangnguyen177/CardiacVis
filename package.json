@@ -14,7 +14,13 @@
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.4",
-    "vtk.js": "^5.7.6"
+    "fs": "0.0.1-security",
+    "net": "^1.0.2",
+    "openstack-swift-client": "^1.2.3",
+    "tls": "0.0.1",
+    "vtk.js": "^5.7.6",
+    "webpack": "^3.11.0",
+    "webpack-dev-server": "^2.11.1"
   },
   "devDependencies": {
     "kw-web-suite": "^4.0.1"

@@ -10,6 +10,9 @@ module.exports = {
     path: outputPath,
     filename: 'CardiacVis.js',
   },
+  node: {
+    fs: "empty",
+  },
   module: {
     rules: [
         { test: entry, loader: "expose-loader?CardiacVis" },

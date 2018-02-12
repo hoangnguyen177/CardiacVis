@@ -7,6 +7,7 @@ import XMLReader          		    from 'vtk.js/Sources/IO/XML/XMLReader';
 import vtkXMLPolyDataReader       from 'vtk.js/Sources/IO/XML/XMLPolyDataReader';
 import vtkColorTransferFunction   from 'vtk.js/Sources/Rendering/Core/ColorTransferFunction';
 import vtkColorMaps               from 'vtk.js/Sources/Rendering/Core/ColorTransferFunction/ColorMaps';
+// import swiftClient                from 'openstack-swift-client';
 
 // For styling slider/dropdown
 import controlPanel               from './controller.html'; 
@@ -36,12 +37,25 @@ const displayEdgeSelector = document.querySelector('.visibility');
 var actor = '';
 const reader = vtkXMLPolyDataReader.newInstance();
 
+//-------
+// stuff
+//-------
+// const url = 'https://keystone.rc.nectar.org.au:5000/v3/';
+// const uname = 's4313512@student.uq.edu.au';
+// const pwd = 'ZDU4NTQwNWE4ZDU4M2I4';
+// let client = new swiftClient(url, uname, pwd);
+// console.log('client: '+ client);
+// let container = client.container('CardiacContainerTest');
+// console.log('container: ' + container);
+// // container.list().then((stuff) => {
+// //     console.log("Done!: " + stuff);
+// // });
+
 // -----------------------------------------------------------
 // Files located on Nectar, current hack found <2/2/18>:
 // Run Safari with security disabled:
 // <Toolbar> Develop -> Disable Cross-Origin Restrictions
 // ----------------------------------------------------------- 
-
 var baseModelResult = 'DS_1/Vsoln_testrun_';
 var middleObjStoreURL = baseModelResult + voltageSolutionSlider.value + '.vtp';
 const baseObjStoreURL = 'https://swift.rc.nectar.org.au:8888/v1/AUTH_53ca8bcbf7fd4140b05648b13b7b7898/CardiacContainerTest/';
@@ -52,7 +66,31 @@ var fileLocation =  initialModelResult;
 // Initially display the mesh (pre cardiac simulation) and setup
 // the different heart models that can be loaded
 // -----------------------------------------------------------  
-setupDummyFiles();
+// Keep augmenting dataset names until an invalid one is reached 
+// (5/2/18, atm 6 DS loaded, 7 is invalid)
+// Modified from answer: https://stackoverflow.com/questions/45008330/how-can-i-use-fetch-in-while-loop
+// && https://developers.google.com/web/updates/2015/03/introduction-to-fetch
+const urlTest = baseObjStoreURL + 'DS_';
+var i = 1;
+var u = urlTest + i + '/';
+
+// Check for valid links of uploaded files here
+// NOTE: doesn't check if the file is correct, just that the link works.
+var fetchUploadedDatasets = function(url) {
+  fetch(url).then(function(response) {
+    if(response.status !== 404) { // Not equal to incorrect status
+      i = i + 1;
+      url = urlTest + i + '/';
+      fetchUploadedDatasets(url); 
+    }
+    else {
+      setupDummyFiles(i); //Display a dropdown of so-far uploaded datasets
+      return;
+    }
+  });
+}
+
+fetchUploadedDatasets(u); 
 initialiseDisplayedMesh(fileLocation);
 
 /**
@@ -150,11 +188,12 @@ voltageSolutionSlider.addEventListener('input', (e) => {
  * Currently sets up a dummy example of a drop down list of files.
  * TODO: load these as they are "established/created/found"
  */
-function setupDummyFiles() {
+//ADDED MAXVALIDLINKS INSTAGE OF >= 12 and cleared datasetSelector
+function setupDummyFiles(maxValidLinks) {
   var datasetsElement = document.getElementsByClassName('datasets')[0];
   var file = '';
 
-  for (var i = 1; i <= 12; i++) {
+  for (var i = 1; i < maxValidLinks; i++) { //maxValidLinks = 6 at this stage
     file = document.createElement('option');
     file.text = 'Dataset #' + i; // Label
     file.value = i; // value of the option.
