@@ -48940,12 +48940,14 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 
 
 
-// import swiftClient                from 'openstack-swift-client';
 
+// For requesting container information
+
+// import swiftClient                from 'openstack-swift-client'; // TODO: IMPLEMENT
 
 // For styling slider/dropdown
  
-// const fileName = 'heart.vtk'; // 'uh60.vtk'; // 'luggaBody.vtk';
+
 const __BASE_PATH__ = 'localhost:8080';
 const __URL__ = "https://swift.rc.nectar.org.au:8888/v1/AUTH_53ca8bcbf7fd4140b05648b13b7b7898/CardiacContainerTest/";
 
@@ -48964,23 +48966,8 @@ const voltageSolutionSlider = document.querySelector('.vSolns');
 const datasetSelector = document.querySelector('.datasets');
 const displayEdgeSelector = document.querySelector('.visibility');
 
-var actor = '';
 const reader = __WEBPACK_IMPORTED_MODULE_6_vtk_js_Sources_IO_XML_XMLPolyDataReader___default.a.newInstance();
-
-// Request to get the object store container contents from the objectstore
-function getObjectStoreContents() {
-  __WEBPACK_IMPORTED_MODULE_9_request___default()(__URL__, (err, res, body) => {
-    if (err) { 
-      return console.log(err); 
-    }
-
-    var containerElements = body.split(/\r?\n/); // Split at \n
-    var containerNumber = containerElements[containerElements.length - 2].split(/\//)[0].split(/_/)[1]; // Split at / and then at _
-    // console.log("containerNumber: " + containerNumber);
-
-    setupNumberOfDatasets(containerNumber);
-  });
-}
+var actor = '';
 
 // -----------------------------------------------------------
 // Files located on NectarCloud object store; 
@@ -48997,11 +48984,8 @@ var fileLocation =  initialModelResult;
 // Initially display the mesh (pre cardiac simulation) and setup
 // the different heart models that can be loaded
 // -----------------------------------------------------------  
-
-
 getObjectStoreContents();
 initialiseDisplayedMesh(fileLocation);
-
 
 // -----------------------------------------------------------
 // UI control handling
@@ -49016,21 +49000,23 @@ displayEdgeSelector.addEventListener('change', (e) => {
 // Modify how the displayed mesh looks (i.e. surface/points)
 representationSelector.addEventListener('change', (e) => {
   const newRepValue = Number(e.target.value);
+  const isWireframe = document.getElementsByClassName('visibility')[0];
   actor.getProperty().setRepresentation(newRepValue);
   actor.getProperty().setPointSize(4); // Set point size to 4
+  if (newRepValue === 0 || newRepValue === 1) {
+    isWireframe.checked = false;
+    isWireframe.disabled = true;
+  } else { 
+    isWireframe.disabled = false;
+  }
+
   renderWindow.render();
 });
 
 // Select different datasets to load from a drop down
 datasetSelector.addEventListener('change', (e) => {
-  const fileNumber = 'Loading Dataset #' + e.target.value;
-  // console.log(fileNumber);
 
-  /* Locally Located Files */
-  // fileLocation = '/data/DS_' + e.target.value + '/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp';
-  // baseModelResult = '/data/DS_' + e.target.value + '/Vsoln_testrun_';
-
-  /* Files Located On Object Store */
+  // Files located on the Object Store
   baseModelResult = 'DS_' + e.target.value + '/Vsoln_testrun_';
   middleObjStoreURL = baseModelResult + voltageSolutionSlider.value + '.vtp';
   fileLocation =  baseObjStoreURL + middleObjStoreURL;
@@ -49044,7 +49030,6 @@ datasetSelector.addEventListener('change', (e) => {
 // Update the displayed scalar values
 voltageSolutionSlider.addEventListener('input', (e) => {
   fileLocation = baseObjStoreURL + baseModelResult + e.target.value + '.vtp'; // new file location
-  // console.log("Scalar Value from: " +  fileLocation);
   
   // Simulation model file results
   updateScalarData(fileLocation); /* Added baseObjStoreURL because loaded from website */
@@ -49053,6 +49038,22 @@ voltageSolutionSlider.addEventListener('input', (e) => {
 // -----------------------------------------------------------
 // Functions to display & alter the state of the displayed data 
 // -----------------------------------------------------------
+
+/**
+ * Request to get a list of object store container contents from the objectstore
+ */
+function getObjectStoreContents() {
+  __WEBPACK_IMPORTED_MODULE_9_request___default()(__URL__, (err, res, body) => {
+    if (err) { 
+      return console.log(err); 
+    }
+
+    const containerElements = body.split(/\r?\n/); // Split at \n
+    const containerNumber = containerElements[containerElements.length - 2].split(/\//)[0].split(/_/)[1]; // Split at / and then at _
+
+    setupNumberOfDatasets(containerNumber);
+  });
+}
 
 /**
  * Assign a colour map to the displayed simulation (scalar value targeted); as 
@@ -49091,21 +49092,46 @@ function initialiseDisplayedMesh(file) {
     actor = __WEBPACK_IMPORTED_MODULE_1_vtk_js_Sources_Rendering_Core_Actor___default.a.newInstance();
     actor.setMapper(mapper);
 
-    // Make sure wireframe is displayed correctly
-    const test = document.getElementsByClassName('visibility')[0];
-    if(test.checked && (actor.getProperty().getEdgeVisibility() !== true)) {
-      actor.getProperty().setEdgeVisibility(true);
-    }
-    // const testRep = document.getElementsByClassName('representations');
-    // console.log(testRep[0].value); //testRep[0].children[2]
-    // actor.getProperty().setRepresentation(testRep[0].value);
-    // console.log(testRep[0].value); //testRep[0].children[2]
-   
+    // Maintain model status
+    initialiseModelStatus(actor);
 
+    // Render everything + reset
     renderer.addActor(actor);
     resetCamera();
     render();
   });
+}
+
+/**
+ * A helper function to: initialiseDisplayedMesh. Makes sure that the different status' 
+ * of the model are kept when a new dataset is loaded (i.e. display model in point form/ 
+ * leave 'visible edges' checked).
+ * @param  {vtkActor} actor 
+ *         Represents an object (geometry & properties -> the heart in this case) in a rendered scene
+ */
+function initialiseModelStatus(actor) {
+    const isWireframe = document.getElementsByClassName('visibility')[0];    
+    const allRepresentations = document.getElementsByClassName('representations');
+    const currentRepSelection = allRepresentations[0].selectedIndex;
+
+    // Leave checkbox checked if it was already selected
+    if(isWireframe.checked && (actor.getProperty().getEdgeVisibility() !== true)) {
+      actor.getProperty().setEdgeVisibility(true);
+    }
+
+    // Disable checkbox for point/wireframe
+    actor.getProperty().setRepresentation(currentRepSelection);
+
+    if (currentRepSelection === 0) {
+      actor.getProperty().setPointSize(4); // Increase point size
+      isWireframe.checked = false;
+      isWireframe.disabled = true;
+    } else if (currentRepSelection === 1) {
+      isWireframe.checked = false;
+      isWireframe.disabled = true;
+    } else {
+      isWireframe.disabled = false;
+    }
 }
 
 /**
@@ -49119,10 +49145,10 @@ function setupNumberOfDatasets(maxValidLinks) {
   var datasetsElement = document.getElementsByClassName('datasets')[0];
   var file = '';
 
-  for (var i = 1; i <= maxValidLinks; i++) { //maxValidLinks = 6 at this stage
+  for (var i = 1; i <= maxValidLinks; i++) { // maxValidLinks = 6 at this stage
     file = document.createElement('option');
     file.text = 'Dataset #' + i; // Drop down menu label
-    file.value = i; // value of the option.
+    file.value = i; // Value of the option.
     datasetSelector.appendChild(file);
   }
 }
@@ -100113,7 +100139,7 @@ exports.debug = debug // for test
 /* 537 */
 /***/ (function(module, exports) {
 
-module.exports = "<table>\n  <tr>\n    <td>Select Dataset: </td>\n    <td>\n      <select class='datasets' style=\"width: 100%\"></select>\n    </td>\n  </tr>\n  <tr>\n    <td>Display Options: </td>\n    <td>\n      <select class='representations' style=\"width: 100%\">\n        <option value='0'>Points</option>\n        <option value='1'>Wireframe</option>\n        <option value='2' selected>Surface</option> <!--   <option value='2' selected>Surface</option> -->\n      </select>\n    </td>\n    <td>Visible Edges</td>\n    <td>\n      <input class='visibility' type=\"checkbox\" /> <!-- To Edit-->\n    </td>\n  </tr>\n  <tr>\n    <td>Voltage Solutions: </td>\n    <td>\n      <input class='vSolns' type=\"range\" min=\"0\" max=\"30\" step=\"1\" value=\"0\" />\n    </td>\n  </tr>\n</table>\n";
+module.exports = "<table>\n  <tr>\n    <td>Select Dataset: </td>\n    <td>\n      <select class='datasets' style=\"width: 100%\"></select>\n    </td>\n  </tr>\n  <tr>\n    <td>Display Options: </td>\n    <td>\n      <select class='representations' style=\"width: 100%\">\n        <option value='0'>Points</option>\n        <option value='1'>Wireframe</option>\n        <option value='2' selected>Surface</option>\n      </select>\n    </td>\n    <td>Visible Edges</td>\n    <td>\n      <input class='visibility' type=\"checkbox\" />\n    </td>\n  </tr>\n  <tr>\n    <td>Voltage Solutions: </td>\n    <td>\n      <input class='vSolns' type=\"range\" min=\"0\" max=\"30\" step=\"1\" value=\"0\" />\n    </td>\n  </tr>\n</table>\n";
 
 /***/ })
 /******/ ]);

@@ -10,9 +10,9 @@ module.exports = {
     path: outputPath,
     filename: 'CardiacVis.js',
   },
-  // node: { // NOTE: need this in place if needing fs module, since it's actually empty
-  //   fs: "empty",
-  // },
+  node: { // NOTE: need this in place if needing fs module, since it's actually empty
+    fs: "empty",
+  },
   module: {
     rules: [
         { test: entry, loader: "expose-loader?CardiacVis" },
