@@ -7,11 +7,14 @@ import XMLReader          		    from 'vtk.js/Sources/IO/XML/XMLReader';
 import vtkXMLPolyDataReader       from 'vtk.js/Sources/IO/XML/XMLPolyDataReader';
 import vtkColorTransferFunction   from 'vtk.js/Sources/Rendering/Core/ColorTransferFunction';
 import vtkColorMaps               from 'vtk.js/Sources/Rendering/Core/ColorTransferFunction/ColorMaps';
+import request                    from 'request';
+// import swiftClient                from 'openstack-swift-client'; // TODO: IMPLEMENT
 
 // For styling slider/dropdown
 import controlPanel               from './controller.html'; 
-// const fileName = 'heart.vtk'; // 'uh60.vtk'; // 'luggaBody.vtk';
+
 const __BASE_PATH__ = 'localhost:8080';
+const __URL__ = "https://swift.rc.nectar.org.au:8888/v1/AUTH_53ca8bcbf7fd4140b05648b13b7b7898/CardiacContainerTest/";
 
 // ----------------------------------------------------------------------------
 // Standard rendering code setup
@@ -28,23 +31,17 @@ const voltageSolutionSlider = document.querySelector('.vSolns');
 const datasetSelector = document.querySelector('.datasets');
 const displayEdgeSelector = document.querySelector('.visibility');
 
-/* FILES THAT ARE LOCATED LOCALLY */
-// var initialModelResult = '/data/DS_1/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp'; 
-// var baseModelResult = '/data/DS_1/Vsoln_testrun_';
-// var fileLocation = initialModelResult;
-
-var actor = '';
 const reader = vtkXMLPolyDataReader.newInstance();
+var actor = '';
 
 // -----------------------------------------------------------
-// Files located on Nectar, current hack found <2/2/18>:
-// Run Safari with security disabled:
-// <Toolbar> Develop -> Disable Cross-Origin Restrictions
+// Files located on NectarCloud object store; 
+// <13/2/18> currently CORS are disabled on the obj store end
+// ultimately will use swift for obj store access
 // ----------------------------------------------------------- 
-
 var baseModelResult = 'DS_1/Vsoln_testrun_';
 var middleObjStoreURL = baseModelResult + voltageSolutionSlider.value + '.vtp';
-const baseObjStoreURL = 'https://swift.rc.nectar.org.au:8888/v1/AUTH_53ca8bcbf7fd4140b05648b13b7b7898/CardiacContainerTest/';
+const baseObjStoreURL = __URL__;
 const initialModelResult = baseObjStoreURL + middleObjStoreURL;
 var fileLocation =  initialModelResult;
 
@@ -52,11 +49,84 @@ var fileLocation =  initialModelResult;
 // Initially display the mesh (pre cardiac simulation) and setup
 // the different heart models that can be loaded
 // -----------------------------------------------------------  
-setupDummyFiles();
+getObjectStoreContents();
 initialiseDisplayedMesh(fileLocation);
 
+// -----------------------------------------------------------
+// UI control handling
+// -----------------------------------------------------------
+
+// Show/Hide the visiblity of the surface mesh's edges
+displayEdgeSelector.addEventListener('change', (e) => {
+  actor.getProperty().setEdgeVisibility(!!e.target.checked);
+  renderWindow.render();
+});
+
+// Modify how the displayed mesh looks (i.e. surface/points)
+representationSelector.addEventListener('change', (e) => {
+  const newRepValue = Number(e.target.value);
+  const isWireframe = document.getElementsByClassName('visibility')[0];
+  actor.getProperty().setRepresentation(newRepValue);
+  actor.getProperty().setPointSize(4); // Set point size to 4
+  if (newRepValue === 0 || newRepValue === 1) {
+    isWireframe.checked = false;
+    isWireframe.disabled = true;
+  } else { 
+    isWireframe.disabled = false;
+  }
+
+  renderWindow.render();
+});
+
+// Select different datasets to load from a drop down
+datasetSelector.addEventListener('change', (e) => {
+
+  // Files located on the Object Store
+  baseModelResult = 'DS_' + e.target.value + '/Vsoln_testrun_';
+  middleObjStoreURL = baseModelResult + voltageSolutionSlider.value + '.vtp';
+  fileLocation =  baseObjStoreURL + middleObjStoreURL;
+  
+  actor.delete();
+  initialiseDisplayedMesh(fileLocation);
+
+  renderWindow.render();
+});
+
+// Update the displayed scalar values
+voltageSolutionSlider.addEventListener('input', (e) => {
+  fileLocation = baseObjStoreURL + baseModelResult + e.target.value + '.vtp'; // new file location
+  
+  // Simulation model file results
+  updateScalarData(fileLocation); /* Added baseObjStoreURL because loaded from website */
+});
+
+// -----------------------------------------------------------
+// Functions to display & alter the state of the displayed data 
+// -----------------------------------------------------------
+
 /**
- * Assign a colour map and render everything properly.
+ * Request to get a list of object store container contents from the objectstore
+ */
+function getObjectStoreContents() {
+  request(__URL__, (err, res, body) => {
+    if (err) { 
+      return console.log(err); 
+    }
+
+    const containerElements = body.split(/\r?\n/); // Split at \n
+    const containerNumber = containerElements[containerElements.length - 2].split(/\//)[0].split(/_/)[1]; // Split at / and then at _
+
+    setupNumberOfDatasets(containerNumber);
+  });
+}
+
+/**
+ * Assign a colour map to the displayed simulation (scalar value targeted); as 
+ * well as make sure that the rendering of the object is in-lign with it's previous
+ * state if there is one (i.e. selected wireframe for a previous dataset).
+ * @param  {String} file 
+ *         The dataset file that is to be read and have its relevant contents extracted 
+ *         and visualised 
  */
 function initialiseDisplayedMesh(file) {
   reader.setUrl(file).then(() => {
@@ -87,77 +157,63 @@ function initialiseDisplayedMesh(file) {
     actor = vtkActor.newInstance();
     actor.setMapper(mapper);
 
-    // Make sure wireframe is displayed correctly
-    const test = document.getElementsByClassName('visibility')[0];
-    if(test.checked && (actor.getProperty().getEdgeVisibility() !== true)) {
-      actor.getProperty().setEdgeVisibility(true);
-    }
+    // Maintain model status
+    initialiseModelStatus(actor);
 
+    // Render everything + reset
     renderer.addActor(actor);
     resetCamera();
     render();
   });
 }
 
-// -----------------------------------------------------------
-// UI control handling
-// -----------------------------------------------------------
+/**
+ * A helper function to: initialiseDisplayedMesh. Makes sure that the different status' 
+ * of the model are kept when a new dataset is loaded (i.e. display model in point form/ 
+ * leave 'visible edges' checked).
+ * @param  {vtkActor} actor 
+ *         Represents an object (geometry & properties -> the heart in this case) in a rendered scene
+ */
+function initialiseModelStatus(actor) {
+    const isWireframe = document.getElementsByClassName('visibility')[0];    
+    const allRepresentations = document.getElementsByClassName('representations');
+    const currentRepSelection = allRepresentations[0].selectedIndex;
 
-// Show/Hide the visiblity of the surface mesh's edges
-displayEdgeSelector.addEventListener('change', (e) => {
-  actor.getProperty().setEdgeVisibility(!!e.target.checked);
-  renderWindow.render();
-});
+    // Leave checkbox checked if it was already selected
+    if(isWireframe.checked && (actor.getProperty().getEdgeVisibility() !== true)) {
+      actor.getProperty().setEdgeVisibility(true);
+    }
 
-// Modify how the displayed mesh looks (i.e. surface/points)
-representationSelector.addEventListener('change', (e) => {
-  const newRepValue = Number(e.target.value);
-  actor.getProperty().setRepresentation(newRepValue);
-  actor.getProperty().setPointSize(4); // Set point size to 4
-  renderWindow.render();
-});
+    // Disable checkbox for point/wireframe
+    actor.getProperty().setRepresentation(currentRepSelection);
 
-// Select different datasets to load from a drop down
-datasetSelector.addEventListener('change', (e) => {
-  const fileNumber = 'Loading Dataset #' + e.target.value;
-  console.log(fileNumber);
-
-  /* Locally Located Files */
-  // fileLocation = '/data/DS_' + e.target.value + '/Vsoln_testrun_' + voltageSolutionSlider.value + '.vtp';
-  // baseModelResult = '/data/DS_' + e.target.value + '/Vsoln_testrun_';
-
-  /* Files Located On Object Store */
-  baseModelResult = 'DS_' + e.target.value + '/Vsoln_testrun_';
-  middleObjStoreURL = baseModelResult + voltageSolutionSlider.value + '.vtp';
-  fileLocation =  baseObjStoreURL + middleObjStoreURL;
-  
-  actor.delete();
-  initialiseDisplayedMesh(fileLocation);
-
-  renderWindow.render();
-});
-
-// Update the displayed scalar values
-voltageSolutionSlider.addEventListener('input', (e) => {
-  fileLocation = baseObjStoreURL + baseModelResult + e.target.value + '.vtp'; // new file location
-  console.log("Scalar Value from: " +  fileLocation);
-  
-  // Simulation model file results
-  updateScalarData(fileLocation); /* Added baseObjStoreURL because loaded from website*/
-});
+    if (currentRepSelection === 0) {
+      actor.getProperty().setPointSize(4); // Increase point size
+      isWireframe.checked = false;
+      isWireframe.disabled = true;
+    } else if (currentRepSelection === 1) {
+      isWireframe.checked = false;
+      isWireframe.disabled = true;
+    } else {
+      isWireframe.disabled = false;
+    }
+}
 
 /**
- * Currently sets up a dummy example of a drop down list of files.
- * TODO: load these as they are "established/created/found"
+ * Currently displays how many data sets there are to choose from and
+ * display information from the dropdown menu.
+ * @param  {int} maxValidLinks 
+ *         The maximum number of dataset folders-existing
+ *         to be displayed-on the object store's container.
  */
-function setupDummyFiles() {
+function setupNumberOfDatasets(maxValidLinks) {
   var datasetsElement = document.getElementsByClassName('datasets')[0];
   var file = '';
 
-  for (var i = 1; i <= 12; i++) {
+  for (var i = 1; i <= maxValidLinks; i++) { // maxValidLinks = 6 at this stage
     file = document.createElement('option');
-    file.text = 'Dataset #' + i; // Label
-    file.value = i; // value of the option.
+    file.text = 'Dataset #' + i; // Drop down menu label
+    file.value = i; // Value of the option.
     datasetSelector.appendChild(file);
   }
 }
