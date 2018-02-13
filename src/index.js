@@ -7,6 +7,8 @@ import XMLReader          		    from 'vtk.js/Sources/IO/XML/XMLReader';
 import vtkXMLPolyDataReader       from 'vtk.js/Sources/IO/XML/XMLPolyDataReader';
 import vtkColorTransferFunction   from 'vtk.js/Sources/Rendering/Core/ColorTransferFunction';
 import vtkColorMaps               from 'vtk.js/Sources/Rendering/Core/ColorTransferFunction/ColorMaps';
+
+// For requesting container information
 import request                    from 'request';
 // import swiftClient                from 'openstack-swift-client'; // TODO: IMPLEMENT
 

@@ -13,6 +13,7 @@
   "author": "Hoang Nguyen",
   "license": "ISC",
   "dependencies": {
+    "babel-preset-env": "^1.6.1",
     "cors": "^2.8.4",
     "fs": "0.0.1-security",
     "net": "^1.0.2",
