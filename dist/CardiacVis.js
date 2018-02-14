@@ -49047,7 +49047,8 @@ function getObjectStoreContents() {
     if (err) { 
       return console.log(err); 
     }
-
+    console.log("B");
+    console.log(body);
     const containerElements = body.split(/\r?\n/); // Split at \n
     const containerNumber = containerElements[containerElements.length - 2].split(/\//)[0].split(/_/)[1]; // Split at / and then at _
 

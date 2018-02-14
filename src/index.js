@@ -114,12 +114,35 @@ function getObjectStoreContents() {
     if (err) { 
       return console.log(err); 
     }
-
     const containerElements = body.split(/\r?\n/); // Split at \n
-    const containerNumber = containerElements[containerElements.length - 2].split(/\//)[0].split(/_/)[1]; // Split at / and then at _
-
+    const containerNumber = determineMaxDS(containerElements);
     setupNumberOfDatasets(containerNumber);
   });
+}
+
+/**
+ * Gets the maximum dataset number.
+ * @param  {String???} containerElements 
+ *         An array that contains each name of every element in the container
+ * @return {int}
+ *         The highest dataset number (in this case should be 12 <14/2/18>)
+ */
+function determineMaxDS(containerElements) {
+  var max = 1;
+  for (var i = 0; i < (containerElements.length - 1); i++) {
+    var currentElem = containerElements[i].split(/\//)[0].split(/_/)[1];
+    var nextElem = containerElements[i+1].split(/\//)[0].split(/_/)[1];
+    
+    if (currentElem === nextElem) {
+      continue;
+    }
+
+    //NO ERROR CHECKING IF currentElem ACTUALLY A NUMBER
+    if (max < parseInt(currentElem)) {
+      max = currentElem;
+    }
+  }
+  return max;
 }
 
 /**
